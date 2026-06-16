@@ -1,0 +1,16 @@
+name: Upstream Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * 1' # 매주 월요일 자정(00:00)에 자동으로 실행 (UTC 기준)
+  workflow_dispatch:   # 버튼을 눌러서 수동으로 즉시 실행하고 싶을 때 사용
+
+jobs:
+  sync_latest_from_upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync upstream changes
+        # GitHub CLI를 이용해 원본 레포의 최신 내용을 내 메인 브랜치로 동기화합니다.
+        run: gh repo sync ${{ github.repository }} -b main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
