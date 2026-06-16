@@ -27,6 +27,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include <glib.h>
 #include <glib-object.h>
@@ -254,8 +255,8 @@ openslide_t *openslide_open(const char *filename) {
     struct _openslide_level *l = osr->levels[i];
     if (l->downsample == 0) {
       l->downsample =
-        (((double) blh / (double) l->h) +
-         ((double) blw / (double) l->w)) / 2.0;
+        round(((double) blh / (double) l->h) +
+              ((double) blw / (double) l->w)) / 2.0;
     }
   }
 
