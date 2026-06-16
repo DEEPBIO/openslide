@@ -91,6 +91,15 @@ meson install -C builddir
 ```
 
 
+If you want to use OpenSlide within a conda environment, after activating the target environment:
+
+```
+meson setup --prefix ${CONDA_PREFIX} --pkg-config-path ${CONDA_PREFIX}/lib/pkgconfig builddir
+meson compile -C builddir
+patchelf --set-rpath '$ORIGIN' builddir/src/libopenslide.so.1.0.1
+meson install -C builddir
+```
+
 ## Acknowledgements
 
 OpenSlide has been developed by Carnegie Mellon University and other
