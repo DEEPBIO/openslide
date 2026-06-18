@@ -148,6 +148,7 @@ static bool decode_tile(struct level *l,
 
   // select color space
   enum _openslide_jp2k_colorspace space;
+  const unsigned char *bytes = buf;
   switch (l->compression) {
   case APERIO_COMPRESSION_JP2K_YCBCR:
     space = OPENSLIDE_JP2K_YCBCR;
@@ -159,7 +160,6 @@ static bool decode_tile(struct level *l,
     // In large SVS Aperio images, a tile (typically 0, 0), in one or more levels, is partly overwritten.
     // This also overrides the JPEG marker.
     // Return false in order to fallback to a missing tile.
-    const unsigned char *bytes = buf;
     if (bytes[0] == 0x11 || (bytes[0] == 0xff && bytes[1] == 0x11)) {
       return render_missing_tile(l, tiff, dest, tile_col, tile_row, err);
     }
