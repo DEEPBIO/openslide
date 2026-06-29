@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - name: Check out repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -30,7 +30,7 @@ jobs:
           sudo apt-get -y install libfuse3-dev
           python -m pip install prek uv
       - name: Cache pre-commit environments
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           key: prek|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
           path: ~/.cache/prek
@@ -63,7 +63,7 @@ jobs:
             clang doxygen llvm dnf-plugins-core
         dnf debuginfo-install -y cairo fontconfig glib2
     - name: Check out repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Build
       run: |
         if ! meson setup builddir --fatal-meson-warnings --werror \
@@ -106,7 +106,7 @@ jobs:
         path: artifacts/dist
         compression-level: 0
     - name: Cache pristine slides
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         key: pristine
         path: builddir/test/_slidedata/pristine
@@ -271,7 +271,7 @@ jobs:
             esac
         esac
     - name: Check out repo
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
     - name: Build
       run: |
         args="-Dtest=enabled"
@@ -309,7 +309,7 @@ jobs:
         trap "cat builddir/meson-logs/testlog.txt" EXIT
         meson test -C builddir openslide:
     - name: Cache pristine slides
-      uses: actions/cache@v5
+      uses: actions/cache@v6
       with:
         key: pristine
         path: builddir/test/_slidedata/pristine
@@ -326,9 +326,31 @@ jobs:
       if: matrix.sanitize
       run: cd builddir/test && ./driver sanitize
 
+  vcpkg-wait:
+    name: Wait for vcpkg cache
+    # ideally ubuntu-slim, but that has a hard timeout of 15 minutes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for cache
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          repo="${{ github.repository }}"
+          # always use upstream repo
+          repo_arg="-R openslide/${repo##*/}"
+          # Give the run some time to populate, less than the job ever takes
+          # to complete.  If we lose the race, we may redundantly build
+          # vcpkg packages.
+          sleep 30
+          info=$(gh run list $repo_arg -w vcpkg-cache.yml -L 1 \
+              --json databaseId,url)
+          echo "Waiting for $(echo $info | jq -r .[].url)"
+          gh run watch $repo_arg \
+              "$(echo $info | jq -r .[].databaseId)" >/dev/null
+
   windows-build:
     name: Build (Windows, ${{ matrix.toolchain }})
-    needs: primary
+    needs: [primary, vcpkg-wait]
     runs-on: windows-latest
     strategy:
       matrix:
@@ -343,10 +365,10 @@ jobs:
     permissions:
       contents: read
       # for vcpkg caching
-      packages: write
+      packages: read
     steps:
       - name: Check out repo
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
       - name: Install Python
         uses: actions/setup-python@v6
         with:
