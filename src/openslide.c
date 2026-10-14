@@ -204,6 +204,13 @@ static const char **strv_from_hashtable_keys(GHashTable *h) {
   return result;
 }
 
+static double snapped(double relative_ds, double parent_ds) {
+  if (round(relative_ds) == 2) return parent_ds * 2.0;
+  if (round(relative_ds) == 4) return parent_ds * 4.0;
+  if (round(relative_ds * 2) == 5) return parent_ds * 2.5;
+  return parent_ds * relative_ds;
+}
+
 openslide_t *openslide_open(const char *filename) {
   g_assert(openslide_was_dynamically_loaded);
 
@@ -253,10 +260,15 @@ openslide_t *openslide_open(const char *filename) {
   }
   for (int32_t i = 1; i < osr->level_count; i++) {
     struct _openslide_level *l = osr->levels[i];
+    struct _openslide_level *p = osr->levels[i - 1];
     if (l->downsample == 0) {
-      l->downsample =
-        round(((double) blh / (double) l->h) +
-              ((double) blw / (double) l->w)) / 2.0;
+      double ds0 = 
+        (((double) blh / (double) l->h) +
+         ((double) blw / (double) l->w)) / 2.0;
+      double dsp =
+        (((double) p->h / (double) l->h) +
+         ((double) p->w / (double) l->w)) / 2.0;
+      l->downsample = (p->downsample != round(p->downsample)) ? ds0 : snapped(dsp, p->downsample);
     }
   }
 
