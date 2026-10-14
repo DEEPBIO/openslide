@@ -262,7 +262,7 @@ openslide_t *openslide_open(const char *filename) {
     struct _openslide_level *l = osr->levels[i];
     struct _openslide_level *p = osr->levels[i - 1];
     if (l->downsample == 0) {
-      double ds0 = 
+      double ds0 =
         (((double) blh / (double) l->h) +
          ((double) blw / (double) l->w)) / 2.0;
       double dsp =
