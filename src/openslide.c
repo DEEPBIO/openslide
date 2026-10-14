@@ -204,11 +204,16 @@ static const char **strv_from_hashtable_keys(GHashTable *h) {
   return result;
 }
 
-static double snapped(double relative_ds, double parent_ds) {
-  if (round(relative_ds) == 2) return parent_ds * 2.0;
-  if (round(relative_ds) == 4) return parent_ds * 4.0;
-  if (round(relative_ds * 2) == 5) return parent_ds * 2.5;
-  return parent_ds * relative_ds;
+static double snapped(double relative_ds, double parent_ds, double ds0) {
+  static const double candidates[] = { 2.0, 4.0, 2.5, 5.0, 1.6, 8.0 };
+  for (size_t i = 0; i < G_N_ELEMENTS(candidates); i++) {
+    double c = candidates[i];
+    double ds = parent_ds * c;
+    if (fabs(relative_ds - c) / c < 0.03 && fabs(ds - round(ds)) < 1e-6) {
+      return round(ds);
+    }
+  }
+  return ds0;
 }
 
 openslide_t *openslide_open(const char *filename) {
@@ -268,7 +273,9 @@ openslide_t *openslide_open(const char *filename) {
       double dsp =
         (((double) p->h / (double) l->h) +
          ((double) p->w / (double) l->w)) / 2.0;
-      l->downsample = (p->downsample != round(p->downsample)) ? ds0 : snapped(dsp, p->downsample);
+      l->downsample = (fabs(p->downsample - round(p->downsample)) > 1e-6)
+                        ? ds0
+                        : snapped(dsp, p->downsample, ds0);
     }
   }
 
