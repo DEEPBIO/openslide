@@ -59,6 +59,19 @@ static const struct _openslide_format *formats[] = {
   NULL,
 };
 
+// known common ratios of downsample rates between levels
+static const double common_ratios[] = { 2.0, 4.0, 8.0, 3.0, 9.0, 5.0, 10.0 };
+
+// known specific ratios of downsample rates between levels
+static const struct {
+  double ratio;
+  double parent_ds[5];
+} specific_ratios[] = {
+  { 1.5, { 1.0, 0.0 } },                  // [60x(1.0) -> 40x]
+  { 2.5, { 1.0, 2.0, 4.0, 10.0, 0.0 } },  // [100x(1.0) -> 40x] -> ... -> [10x(10.0) -> 4x], 40x -> ... -> [10x(4.0) -> 4x], 20x -> [10x(2.0) -> 4x]
+  { 1.6, { 5.0, 10.0, 25.0, 0.0 } },      // 100x -> ... -> [4x(25.0) -> 2.5x], 40x -> ... -> [4x(10.0) -> 2.5x], 20x -> ... -> [4x(5.0) -> 2.5x]
+};
+
 static bool openslide_was_dynamically_loaded;
 
 // called from shared-library constructor!
@@ -204,16 +217,56 @@ static const char **strv_from_hashtable_keys(GHashTable *h) {
   return result;
 }
 
-static double snapped(double relative_ds, double parent_ds, double ds0) {
-  static const double candidates[] = { 2.0, 4.0, 2.5, 5.0, 1.6, 8.0 };
-  for (size_t i = 0; i < G_N_ELEMENTS(candidates); i++) {
-    double c = candidates[i];
-    double ds = parent_ds * c;
-    if (fabs(relative_ds - c) / c < 0.03 && fabs(ds - round(ds)) < 1e-6) {
-      return round(ds);
+static inline bool _match_double(double a, double b) {
+  return fabs(a - b) < 1e-6;
+}
+
+static inline bool _match_ratio(double a, double b) {
+  return fabs(a - b) / b < 0.03;
+}
+
+static bool is_snapped(double ds) {
+  if (_match_double(ds, round(ds))) {
+    return true;
+  }
+  for (size_t i = 0; i < G_N_ELEMENTS(specific_ratios); i++) {
+    double _ratio = specific_ratios[i].ratio;
+    for (size_t j = 0; j < G_N_ELEMENTS(specific_ratios[i].parent_ds); j++) {
+      double _parent_ds = specific_ratios[i].parent_ds[j];
+      if (_parent_ds == 0.0) {
+        break;
+      }
+      if (_match_double(ds, _parent_ds * _ratio)) {
+        return true;
+      }
     }
   }
-  return ds0;
+  return false;
+}
+
+static double snapped(double parent_ds, double ratio, double ds) {
+  if (is_snapped(parent_ds)) {
+    for (size_t i = 0; i < G_N_ELEMENTS(common_ratios); i++) {
+      double _ratio = common_ratios[i];
+      double _ds = parent_ds * _ratio;
+      if (_match_ratio(ratio, _ratio) && _match_double(_ds, round(_ds))) {
+        return round(_ds);
+      }
+    }
+    for (size_t i = 0; i < G_N_ELEMENTS(specific_ratios); i++) {
+      double _ratio = specific_ratios[i].ratio;
+      for (size_t j = 0; j < G_N_ELEMENTS(specific_ratios[i].parent_ds); j++) {
+        double _parent_ds = specific_ratios[i].parent_ds[j];
+        if (_parent_ds == 0.0) {
+          break;
+        }
+        if (_match_ratio(ratio, _ratio) && _match_double(parent_ds, _parent_ds)) {
+          return _parent_ds * _ratio;
+        }
+      }
+    }
+  }
+  return ds;
 }
 
 openslide_t *openslide_open(const char *filename) {
@@ -267,15 +320,13 @@ openslide_t *openslide_open(const char *filename) {
     struct _openslide_level *l = osr->levels[i];
     struct _openslide_level *p = osr->levels[i - 1];
     if (l->downsample == 0) {
-      double ds0 =
+      double ds =
         (((double) blh / (double) l->h) +
          ((double) blw / (double) l->w)) / 2.0;
-      double dsp =
+      double ratio =
         (((double) p->h / (double) l->h) +
          ((double) p->w / (double) l->w)) / 2.0;
-      l->downsample = (fabs(p->downsample - round(p->downsample)) > 1e-6)
-                        ? ds0
-                        : snapped(dsp, p->downsample, ds0);
+      l->downsample = snapped(p->downsample, ratio, ds);
     }
   }
 
