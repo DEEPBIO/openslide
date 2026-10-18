@@ -248,8 +248,11 @@ static double snapped(double parent_ds, double ratio, double ds) {
   if (is_snapped(parent_ds)) {
     for (size_t i = 0; i < G_N_ELEMENTS(common_ratios); i++) {
       double _ratio = common_ratios[i];
+      if (!_match_ratio(ratio, _ratio)) {
+        continue;
+      }
       double _ds = parent_ds * _ratio;
-      if (_match_ratio(ratio, _ratio) && _match_double(_ds, round(_ds))) {
+      if (_match_double(_ds, round(_ds))) {
         return round(_ds);
       }
     }
