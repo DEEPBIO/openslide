@@ -255,12 +255,15 @@ static double snapped(double parent_ds, double ratio, double ds) {
     }
     for (size_t i = 0; i < G_N_ELEMENTS(specific_ratios); i++) {
       double _ratio = specific_ratios[i].ratio;
+      if (!_match_ratio(ratio, _ratio)) {
+        continue;
+      }
       for (size_t j = 0; j < G_N_ELEMENTS(specific_ratios[i].parent_ds); j++) {
         double _parent_ds = specific_ratios[i].parent_ds[j];
         if (_parent_ds == 0.0) {
           break;
         }
-        if (_match_ratio(ratio, _ratio) && _match_double(parent_ds, _parent_ds)) {
+        if (_match_double(parent_ds, _parent_ds)) {
           return _parent_ds * _ratio;
         }
       }
