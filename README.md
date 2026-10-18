@@ -90,13 +90,20 @@ meson compile -C builddir
 meson install -C builddir
 ```
 
+To build OpenSlide to use within a conda environment, you will need a little tweak as below:
 
-If you want to use OpenSlide within a conda environment, after activating the target environment:
+Within the target conda environment:
 
+1. Install `openslide-4.0.x` via `conda install` to simplify dependency installation.
+2. Do the following steps:
 ```
-meson setup --prefix ${CONDA_PREFIX} --pkg-config-path ${CONDA_PREFIX}/lib/pkgconfig builddir
+meson setup builddir \
+    --prefix "${CONDA_PREFIX}" \
+    --pkg-config-path "${CONDA_PREFIX}/lib/pkgconfig:${CONDA_PREFIX}/share/pkgconfig" \
+    -Dc_args="-I${CONDA_PREFIX}/include" \
+    -Dc_link_args="-Wl,-rpath,'\$ORIGIN/../lib' -Wl,-rpath,${CONDA_PREFIX}/lib -L${CONDA_PREFIX}/lib" \
+    --libdir=lib
 meson compile -C builddir
-patchelf --set-rpath '$ORIGIN' builddir/src/libopenslide.so.1.0.1
 meson install -C builddir
 ```
 
@@ -113,3 +120,34 @@ Development of DICOM and ICC functionality was supported by NCI Imaging
 Data Commons and has been funded in whole or in part with Federal funds
 from the National Cancer Institute, National Institutes of Health, under
 Task Order No. HHSN26110071 under Contract No. HHSN261201500003l.
+
+## Note for installing dependencies
+
+For Debian, you will need
+
+| Dependency | Package |
+| --- | --- |
+| cairo | `libcairo2-dev` |
+| glib | `libglib2.0-dev` |
+| libdicom | **optional** |
+| libjpeg-turbo | `libjpeg62-turbo-dev` |
+| libpng | `libpng-dev` |
+| libtiff | `libtiff-dev` |
+| libxml2 | `libxml2-dev` |
+| openjpeg | `libopenjp2-7-dev` |
+| sqlite | `libsqlite3-dev` |
+| zlib | `zlib1g-dev` |
+| zstandard | `libzstd-dev` |
+
+| For test | Package |
+| --- | --- |
+| libjpeg-turbo | `libjpeg-turbo-progs` |
+| xdelta3 | `xdelta3` |
+| valgrind | `valgrind` |
+| clang | `clang` |
+
+For Ubuntu, you will need
+
+| Dependency | Package |
+| --- | --- |
+| To be | Filled |
