@@ -123,14 +123,14 @@ Task Order No. HHSN26110071 under Contract No. HHSN261201500003l.
 
 ## Note for installing dependencies
 
-For Debian, you will need
+For Debian/Ubuntu, you will need
 
 | Dependency | Package |
 | --- | --- |
 | cairo | `libcairo2-dev` |
 | glib | `libglib2.0-dev` |
 | libdicom | **optional** |
-| libjpeg-turbo | `libjpeg62-turbo-dev` |
+| libjpeg-turbo | `libjpeg-dev` |
 | libpng | `libpng-dev` |
 | libtiff | `libtiff-dev` |
 | libxml2 | `libxml2-dev` |
@@ -145,9 +145,4 @@ For Debian, you will need
 | xdelta3 | `xdelta3` |
 | valgrind | `valgrind` |
 | clang | `clang` |
-
-For Ubuntu, you will need
-
-| Dependency | Package |
-| --- | --- |
-| To be | Filled |
+| python3-venv | `python3-venv` |
